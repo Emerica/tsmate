@@ -9,6 +9,9 @@ import sys
 from pymediainfo import MediaInfo
 import pyqtgraph.parametertree.parameterTypes as pTypes
 from pyqtgraph.parametertree import Parameter, ParameterTree, ParameterItem, registerParameterType
+import signal
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
 
 #Get the file
 input = sys.argv[1]
@@ -263,42 +266,58 @@ try:
         nums = line.split()
         nums = map(float, nums)
         pmt.extend(nums)
+except:
+    print "Unable to fetch pmt csv\n"
 
+try: 
     for line in open(input + '.pat_delta_report.csv'):
         nums = line.split()
         nums = map(float, nums)
         pat.extend(nums)
-
+except:
+    print "Unable to fetch pat csv\n"
+try:
     for line in open(input + '.pcr_delta_report.csv'):
         nums = line.split()
         nums = map(float, nums)
         pcrd.extend(nums)
-        
+except:
+    print "Unable to fetch pcr delta csv\n"
+try:
     for line in open(input + '.pcr_jitter_report.csv'):
         nums = line.split()
         nums = map(float, nums)
         pcrj.extend(nums)
-
-    for line in open(input + '.sdt_delta_report.csv'):
-        nums = line.split()
-        nums = map(float, nums)
-        sdt.extend(nums)
-
+except:
+    print "Unable to fetch pcr jitter csv\n"
+try:
     for line in open(input + '.eit_delta_report.csv'):
         nums = line.split()
         nums = map(float, nums)
         eit.extend(nums)
+except:
+    print "Unable to fetch eit csv\n"
+try:
+    for line in open(input + '.sdt_delta_report.csv'):
+        nums = line.split()
+        nums = map(float, nums)
+        sdt.extend(nums)
+except:
+    print "Unable to fetch sdt csv\n"
+try:
     for line in open(input + '.nit_delta_report.csv'):
         nums = line.split()
         nums = map(float, nums)
         nit.extend(nums)
-
+except:
+    print "Unable to fetch nit csv\n"
+try:
     for line in open(input + '.tdt_delta_report.csv'):
         nums = line.split()
         nums = map(float, nums)
         tdt.extend(nums)
 except:
-    print "Unable to fetech all csv's\n"
+    print "Unable to fetch tdt csv\n"
 
 
 
@@ -350,51 +369,57 @@ tab10 = QtGui.QWidget()
 
 
 tabs.addTab(tab1,"MediaInfo")
-tabs.addTab(tab2,"PCR Timing")
 tabs.addTab(tab3,"Error Log")
 tabs.addTab(tab4,"ETR 290 Report")
-
-tabs.addTab(tab5,"PAT")
-tabs.addTab(tab6,"PMT")
-tabs.addTab(tab7,"SDT")
-tabs.addTab(tab8,"NIT")
-tabs.addTab(tab9,"EIT")
-tabs.addTab(tab10,"TDT")
+if(len(pcrd) > 0 or len(pcrj) > 0):
+    tabs.addTab(tab2,"PCR Timing")
+if(len(pat) > 0):
+    tabs.addTab(tab5,"PAT")
+if(len(pmt) > 0):
+    tabs.addTab(tab6,"PMT")
+if(len(sdt) > 0):
+    tabs.addTab(tab7,"SDT")
+if(len(nit) > 0):
+    tabs.addTab(tab8,"NIT")
+if(len(eit) > 0):
+    tabs.addTab(tab9,"EIT")
+if(len(tdt) > 0):
+    tabs.addTab(tab10,"TDT")
 
 
 win.setLayout(layout)
-
-w1 = pg.PlotWidget(title="PCR Interval (ms)")
-w1.plot(pcrd,pen=(0,255,0))
-pcr_timing.addWidget(w1)
-
-w1 = pg.PlotWidget(title="PCR Jitter (ms)")
-w1.plot(pcrj,pen=(0,0,255))
-pcr_timing.addWidget(w1)
-
-w3 = pg.PlotWidget(title="PAT Interval (ms)")
-w3.plot(pat,pen=(0,255,255))
-pat_panel.addWidget(w3)
-
-w2 = pg.PlotWidget(title="PMT Interval (ms)")
-w2.plot(pmt,pen=(255,255,0))
-pmt_panel.addWidget(w2)
-
-w3 = pg.PlotWidget(title="SDT Interval (ms)")
-w3.plot(sdt,pen=(255,255,255))
-sdt_panel.addWidget(w3)
-
-w3 = pg.PlotWidget(title="NIT Interval (ms)")
-w3.plot(nit,pen=(255,255,255))
-nit_panel.addWidget(w3)
-
-w3 = pg.PlotWidget(title="EIT Interval (ms)")
-w3.plot(eit,pen=(255,255,255))
-eit_panel.addWidget(w3)
-
-w3 = pg.PlotWidget(title="TDT Interval (ms)")
-w3.plot(tdt,pen=(255,255,255))
-tdt_panel.addWidget(w3)
+if(len(pcrd) > 0):
+    w1 = pg.PlotWidget(title="PCR Interval (ms)")
+    w1.plot(pcrd,pen=(0,255,0))
+    pcr_timing.addWidget(w1)
+if(len(pcrj) > 0):
+    w1 = pg.PlotWidget(title="PCR Jitter (ms)")
+    w1.plot(pcrj,pen=(0,0,255))
+    pcr_timing.addWidget(w1)
+if(len(pat) > 0):
+    w3 = pg.PlotWidget(title="PAT Interval (ms)")
+    w3.plot(pat,pen=(0,255,255))
+    pat_panel.addWidget(w3)
+if(len(pmt) > 0):
+    w2 = pg.PlotWidget(title="PMT Interval (ms)")
+    w2.plot(pmt,pen=(255,255,0))
+    pmt_panel.addWidget(w2)
+if(len(sdt) > 0):
+    w3 = pg.PlotWidget(title="SDT Interval (ms)")
+    w3.plot(sdt,pen=(255,255,255))
+    sdt_panel.addWidget(w3)
+if(len(nit) > 0):
+    w3 = pg.PlotWidget(title="NIT Interval (ms)")
+    w3.plot(nit,pen=(255,255,255))
+    nit_panel.addWidget(w3)
+if(len(eit) > 0):
+    w3 = pg.PlotWidget(title="EIT Interval (ms)")
+    w3.plot(eit,pen=(255,255,255))
+    eit_panel.addWidget(w3)
+if(len(tdt) > 0):
+    w3 = pg.PlotWidget(title="TDT Interval (ms)")
+    w3.plot(tdt,pen=(255,255,255))
+    tdt_panel.addWidget(w3)
 
 errorlog = QtGui.QPlainTextEdit()
 for x in exceptions:
@@ -404,16 +429,23 @@ log.addWidget(errorlog)
 mediainfo.addWidget(t)
 etr290.addWidget(etr)
 
-tab1.setLayout(mediainfo)   
-tab2.setLayout(pcr_timing)   
-tab3.setLayout(log)   
-tab4.setLayout(etr290)   
-tab5.setLayout(pat_panel)   
-tab6.setLayout(pmt_panel)   
-tab7.setLayout(sdt_panel)   
-tab8.setLayout(nit_panel)   
-tab9.setLayout(eit_panel)   
-tab10.setLayout(tdt_panel)    
+tab1.setLayout(mediainfo)
+if(len(pcrd) > 0 or len(pcrj) > 0):
+    tab2.setLayout(pcr_timing)
+tab3.setLayout(log)
+tab4.setLayout(etr290)
+if(len(pat) > 0):
+    tab5.setLayout(pat_panel)
+if(len(pmt) > 0):
+    tab6.setLayout(pmt_panel)
+if(len(sdt) > 0):
+    tab7.setLayout(sdt_panel)
+if(len(nit) > 0):
+    tab8.setLayout(nit_panel)
+if(len(eit) > 0):
+    tab9.setLayout(eit_panel)
+if(len(tdt) > 0):
+    tab10.setLayout(tdt_panel)    
 
 layout.addWidget(tabs, 2, 0, 1, 1)
 win.show()
