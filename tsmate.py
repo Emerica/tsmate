@@ -13,8 +13,13 @@ import signal
 
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+
+
+goporder = 1;
 #Get the file
 input = sys.argv[1]
+
+
 
 print "Please wait, parsing media."
 #Get mediainfo about the file
@@ -325,7 +330,27 @@ except:
 
 
 exceptions.append("Test End")
+
+
+output = subprocess.check_output("/usr/local/bin/ffprobe -show_frames " + input + " 2>&1"  , shell=True) 
+frame_info = map(str, output.split("\n"))
+
+cpn = []
+dpn = []
+pictypes = [] 
+frame = 0
+for x in frame_info:
+    if(x.find("pict_type")>-1):
+        type = x.split("=")
+        pictypes.append(type[1])
+    if(x.find("coded_picture_number")>-1):
+        type = x.split("=")
+        cpn.append(type[1])
+    if(x.find("display_picture_number")>-1):
+        type = x.split("=")
+        dpn.append(type[1])
 app = QtGui.QApplication([])
+
 
 ## Create tree of Parameter objects
 p = Parameter.create(name='params', type='group', children=params)
@@ -350,11 +375,87 @@ sdt_panel = QtGui.QGridLayout()
 nit_panel = QtGui.QGridLayout()
 eit_panel = QtGui.QGridLayout()
 tdt_panel = QtGui.QGridLayout()
+frame_panel = QtGui.QGridLayout()
 
-mediainfo	= QtGui.QVBoxLayout()
+
+
+mediainfo = QtGui.QVBoxLayout()
 log	= QtGui.QVBoxLayout()
+framelog	= QtGui.QVBoxLayout()
 etr290 = QtGui.QVBoxLayout()
 tabs	= QtGui.QTabWidget()
+
+
+try:
+    _fromUtf8 = QtCore.QString.fromUtf8
+except AttributeError:
+    _fromUtf8 = lambda s: s
+
+framerlog = QtGui.QListWidget()
+framerlog.setViewMode(QtGui.QListView.IconMode)
+framerlog.setIconSize(QtCore.QSize(24, 24))
+framerlog.setSpacing(3)
+
+icon1 = QtGui.QIcon("icons/I.png")
+iframe = icon1.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
+icon2 = QtGui.QIcon("icons/B.png")
+bframe = icon2.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
+icon3 = QtGui.QIcon("icons/P.png")
+pframe = icon3.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
+icon4 = QtGui.QIcon("icons/list.png")
+pframe = icon4.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
+
+
+gopmenu = QtGui.QToolBar()
+ordertype  = gopmenu.addAction(icon4, '&Decode/Display Order')
+ordertype_label  = QtGui.QLabel(' Display Order')
+gopmenu.addWidget(ordertype_label)
+
+
+
+do = []
+def change_gop_order():
+	global goporder, pictypes, cpn,ordertype_label
+	if(goporder == 1):
+		ordertype_label.setText(" Display Order")
+		goporder =0
+	else:
+		ordertype_label.setText(" Decode Order")
+		goporder =1
+	do = []
+	framerlog.clear()
+	if(goporder ==0):
+	    #Recode in display order from coded order
+	    i=0
+	    for x in cpn:
+	    	n = pictypes[int(i)]
+	    	do.insert(int(x), n)
+	    	i+=1
+	    i=0
+	else:
+		do = pictypes
+	for x in do:
+		item = QtGui.QListWidgetItem(x)
+		if(x == "I"):
+			item.setIcon(icon1)
+			item.setBackground(QtGui.QColor('#A84F00'))
+			item.setForeground(QtGui.QColor('white'))
+		elif(x == "B"):
+			item.setIcon(icon2)
+			item.setBackground(QtGui.QColor('#015E66'))
+			item.setForeground(QtGui.QColor('white'))
+		elif(x =="P"):
+			item.setIcon(icon3)
+			item.setBackground(QtGui.QColor('#008310'))
+			item.setForeground(QtGui.QColor('white'))
+		framerlog.addItem(item)
+
+		
+change_gop_order()
+
+ordertype.setStatusTip('Re-order Gop between coded and display order')
+ordertype.triggered.connect(change_gop_order)
+
 
 tab1 = QtGui.QWidget()	
 tab2 = QtGui.QWidget()
@@ -366,7 +467,7 @@ tab7 = QtGui.QWidget()
 tab8 = QtGui.QWidget()
 tab9 = QtGui.QWidget()
 tab10 = QtGui.QWidget()
-
+tab11 = QtGui.QWidget()
 
 tabs.addTab(tab1,"MediaInfo")
 tabs.addTab(tab3,"Error Log")
@@ -385,7 +486,8 @@ if(len(eit) > 0):
     tabs.addTab(tab9,"EIT")
 if(len(tdt) > 0):
     tabs.addTab(tab10,"TDT")
-
+if(len(pictypes) > 0):
+    tabs.addTab(tab11,"GOP")
 
 win.setLayout(layout)
 if(len(pcrd) > 0):
@@ -420,6 +522,10 @@ if(len(tdt) > 0):
     w3 = pg.PlotWidget(title="TDT Interval (ms)")
     w3.plot(tdt,pen=(255,255,255))
     tdt_panel.addWidget(w3)
+if(len(pictypes) > 0):
+    frame_panel.addWidget(gopmenu)
+    frame_panel.addWidget(framerlog)
+
 
 errorlog = QtGui.QPlainTextEdit()
 for x in exceptions:
@@ -446,7 +552,10 @@ if(len(eit) > 0):
     tab9.setLayout(eit_panel)
 if(len(tdt) > 0):
     tab10.setLayout(tdt_panel)    
-
+if(len(pictypes) > 0):
+    tab11.setLayout(frame_panel)    
+    
+    
 layout.addWidget(tabs, 2, 0, 1, 1)
 win.show()
 ## Start Qt event loop unless running in interactive mode or using pyside.
