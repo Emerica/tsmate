@@ -322,7 +322,6 @@ except:
 exceptions.append("Test End")
 allframeinfo = []
 output = subprocess.check_output("/usr/local/bin/ffprobe -show_frames " + input   , shell=True) 
-frame_info = map(str, output.split("\n"))
 audioframes = []
 videoframes = []
 i=0;
@@ -384,6 +383,10 @@ for x in videoframes:
 	coded_video_frames.insert(int(x.coded_picture_number), x)
 
 
+output = subprocess.check_output("/usr/bin/dvbinfo -d debug --file " + input    , shell=True) 
+packets = map(str, output.split("	---------------------------------------------------------\n\n"))
+
+
 app = QtGui.QApplication([])
 
 p = Parameter.create(name='params', type='group', children=params)
@@ -415,6 +418,10 @@ frame_panel = QtGui.QHBoxLayout()
 aframe_holder = QtGui.QGridLayout()
 aframe_panel = QtGui.QHBoxLayout()
 
+packet_holder = QtGui.QGridLayout()
+packet_panel = QtGui.QHBoxLayout()
+
+
 mediainfo = QtGui.QVBoxLayout()
 log	= QtGui.QVBoxLayout()
 etr290 = QtGui.QVBoxLayout()
@@ -424,6 +431,8 @@ try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
     _fromUtf8 = lambda s: s
+
+packetinfo = QtGui.QPlainTextEdit()
 
 icon1 = QtGui.QIcon("icons/I.png")
 iframe = icon1.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
@@ -497,6 +506,14 @@ def get_audio_index( index ):
 	fp = Parameter.create(name='params', type='group', children=params)
 	audioinfo.setParameters(fp, showTop=False)
 
+
+def get_packet_index( index ):
+	packet_number = int( packetlog.currentItem().statusTip() )  
+	packetinfo.clear()
+	packetinfo.insertPlainText(packets[packet_number])
+
+
+
 framerlog = QtGui.QListWidget()
 framerlog.setViewMode(QtGui.QListView.IconMode)
 framerlog.setIconSize(QtCore.QSize(24, 24))
@@ -512,6 +529,14 @@ audiolog.setSpacing(3)
 audiolog.setMovement(0)
 audiolog.selectionModel().selectionChanged.connect(get_audio_index)
 audiolog.setResizeMode(QtGui.QListView.Adjust)
+
+packetlog = QtGui.QListWidget()
+packetlog.setViewMode(QtGui.QListView.IconMode)
+packetlog.setIconSize(QtCore.QSize(24, 24))
+packetlog.setSpacing(3)
+packetlog.setMovement(0)
+packetlog.selectionModel().selectionChanged.connect(get_packet_index)
+packetlog.setResizeMode(QtGui.QListView.Adjust)
 
 do = []
 def change_gop_order():
@@ -563,9 +588,18 @@ for x in audioframes:
 	audiolog.addItem(item)
 	i+=1
 
+i=0
+for x in packets:
+	item = QtGui.QListWidgetItem("Pkt")
+	item.setStatusTip(str(i))
+	item.setIcon(audio_icon)
+	item.setBackground(QtGui.QColor('#A84F00'))
+	item.setForeground(QtGui.QColor('white'))
+	packetlog.addItem(item)
+	i+=1
+
 ordertype.setStatusTip('Re-order Gop between coded and display order')
 ordertype.triggered.connect(change_gop_order)
-
 
 tab1 = QtGui.QWidget()	
 tab2 = QtGui.QWidget()
@@ -579,6 +613,7 @@ tab9 = QtGui.QWidget()
 tab10 = QtGui.QWidget()
 tab11 = QtGui.QWidget()
 tab12 = QtGui.QWidget()
+tab13 = QtGui.QWidget()
 
 tabs.addTab(tab1,"MediaInfo")
 tabs.addTab(tab3,"Error Log")
@@ -601,7 +636,8 @@ if(len(coded_video_frames) > 0):
     tabs.addTab(tab11,"GOP")
 if(len(coded_video_frames) > 0):
     tabs.addTab(tab12,"Audio")
-
+if(len(packetlog) > 0):
+    tabs.addTab(tab13,"Packets")
 
 win.setLayout(layout)
 if(len(pcrd) > 0):
@@ -645,7 +681,11 @@ if(len(coded_video_frames) > 0):
     aframe_panel.addWidget(audiolog)
     aframe_panel.addWidget(audioinfo)
     aframe_holder.addLayout(aframe_panel,0,0)
-
+if(len(packets) > 0):
+    packet_panel.addWidget(packetlog)
+    packet_panel.addWidget(packetinfo)
+    packet_holder.addLayout(packet_panel,0,0)
+    
 errorlog = QtGui.QPlainTextEdit()
 for x in exceptions:
     errorlog.insertPlainText(x + "\n")
@@ -675,7 +715,8 @@ if(len(coded_video_frames) > 0):
     tab11.setLayout(frame_holder)    
 if(len(coded_video_frames) > 0):
     tab12.setLayout(aframe_holder)    
-    
+if(len(packets) > 0):
+    tab13.setLayout(packet_holder)  
 layout.addWidget(tabs, 2, 0, 1, 1)
 win.show()
 ## Start Qt event loop unless running in interactive mode or using pyside.
