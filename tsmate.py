@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import io
 from pyqtgraph.Qt import QtGui, QtCore
 import numpy as np
 import pyqtgraph as pg
@@ -10,19 +10,13 @@ from pymediainfo import MediaInfo
 import pyqtgraph.parametertree.parameterTypes as pTypes
 from pyqtgraph.parametertree import Parameter, ParameterTree, ParameterItem, registerParameterType
 import signal
-
+import ConfigParser
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 
+class Frame(object):
+   def __init__(self, media_type):
+      self.media_type = media_type
 
-
-goporder = 1;
-#Get the file
-input = sys.argv[1]
-
-
-
-print "Please wait, parsing media."
-#Get mediainfo about the file
 params = [
     {'name': 'Filename', 'type': 'str', 'value': input, 'siPrefix': False, 'suffix': '', 'readonly': True},
     {'name': 'General', 'type': 'group', 'children': [
@@ -33,11 +27,15 @@ params = [
     ]}
 ]
 
+input = sys.argv[1]
+
+goporder = 1;
 audiopid = -1;
 videopid = -1;
 
 exceptions = []
 exceptions.append("Test start")
+print "Please wait, parsing media."
 
 media_info = MediaInfo.parse(input)
 try:
@@ -143,8 +141,6 @@ ETR_290_DATA_DELAY_ERROR_COUNT = 0
 output = subprocess.check_output("/usr/local/bin/tsetr290 " + input + " " + str(bitrate) + " 1 " , shell=True) 
 etr_info = map(str, output.split("\n"))
 
-
-
 for x in etr_info:
     if(x.find("ERROR")):
         if(x.find("1.1") > 0):
@@ -214,8 +210,7 @@ for x in etr_info:
         elif(x.find("3.10") > -1):
             ETR_290_DATA_DELAY_ERROR_COUNT+=1
         exceptions.append(x)
-#print exceptions
-#exit(0)
+
 etrparams = [
     {'name': 'Priority 1.', 'type': 'group', 'children': [
         {'name': "1.1  TS Sync Loss", 'type': 'str', 'value':str(ETR_290_TS_SYNC_LOSS_COUNT), 'siPrefix': False, 'suffix': '', 'readonly': True},
@@ -324,35 +319,73 @@ try:
 except:
     print "Unable to fetch tdt csv\n"
 
-
-
-
-
-
 exceptions.append("Test End")
-
-
-output = subprocess.check_output("/usr/local/bin/ffprobe -show_frames " + input + " 2>&1"  , shell=True) 
+allframeinfo = []
+output = subprocess.check_output("/usr/local/bin/ffprobe -show_frames " + input   , shell=True) 
 frame_info = map(str, output.split("\n"))
+audioframes = []
+videoframes = []
+i=0;
+allframeinfo = map(str, output.strip().split("[/FRAME]\n"))
+for x in allframeinfo:
+    config = ConfigParser.RawConfigParser(allow_no_value=True)
+    config.readfp(io.BytesIO(x))
+    frame = Frame(config.get("FRAME", "media_type"))
+    setattr(frame,'index',i )
+    if frame.media_type == "video":
+        setattr(frame,'pict_type', config.get("FRAME", "pict_type") )
+        setattr(frame,'key_frame', config.get("FRAME", "key_frame") )
+        setattr(frame,'pkt_pts', config.get("FRAME", "pkt_pts") )
+        setattr(frame,'pkt_pts_time', config.get("FRAME", "pkt_pts_time") )
+        setattr(frame,'pkt_dts', config.get("FRAME", "pkt_dts") )
+        setattr(frame,'pkt_dts_time', config.get("FRAME", "pkt_dts_time") )
+        setattr(frame,'best_effort_timestamp', config.get("FRAME", "best_effort_timestamp") )
+        setattr(frame,'best_effort_timestamp_time', config.get("FRAME", "best_effort_timestamp_time") )
+        setattr(frame,'pkt_duration', config.get("FRAME", "pkt_duration") )
+        setattr(frame,'pkt_duration_time', config.get("FRAME", "pkt_duration_time") )
+        setattr(frame,'pkt_pos', config.get("FRAME", "pkt_pos") )
+        setattr(frame,'pkt_size', config.get("FRAME", "pkt_size") )
+        setattr(frame,'width', config.get("FRAME", "width") )
+        setattr(frame,'height', config.get("FRAME", "height") )
+        setattr(frame,'pix_fmt', config.get("FRAME", "pix_fmt") )
+        setattr(frame,'sample_aspect_ratio', config.get("FRAME", "sample_aspect_ratio") )
+        setattr(frame,'pict_type', config.get("FRAME", "pict_type") )
+        setattr(frame,'coded_picture_number', config.get("FRAME", "coded_picture_number") )
+        setattr(frame,'display_picture_number', config.get("FRAME", "display_picture_number") )
+        setattr(frame,'interlaced_frame', config.get("FRAME", "interlaced_frame") )
+        setattr(frame,'top_field_first', config.get("FRAME", "top_field_first") )
+        setattr(frame,'repeat_pict', config.get("FRAME", "repeat_pict") )
+        videoframes.append(frame)
+    elif  frame.media_type  == "audio":
+        setattr(frame,'key_frame', config.get("FRAME", "key_frame") )
+        setattr(frame,'pkt_pts', config.get("FRAME", "pkt_pts") )
+        setattr(frame,'pkt_pts_time', config.get("FRAME", "pkt_pts_time") )
+        setattr(frame,'pkt_dts', config.get("FRAME", "pkt_dts") )
+        setattr(frame,'pkt_dts_time', config.get("FRAME", "pkt_dts_time") )
+        setattr(frame,'best_effort_timestamp', config.get("FRAME", "best_effort_timestamp") )
+        setattr(frame,'best_effort_timestamp_time', config.get("FRAME", "best_effort_timestamp_time") )
+        setattr(frame,'pkt_duration', config.get("FRAME", "pkt_duration") )
+        setattr(frame,'pkt_duration_time', config.get("FRAME", "pkt_duration_time") )
+        setattr(frame,'pkt_pos', config.get("FRAME", "pkt_pos") )
+        setattr(frame,'pkt_size', config.get("FRAME", "pkt_size") )
+        setattr(frame,'sample_fmt', config.get("FRAME", "sample_fmt") )
+        setattr(frame,'nb_samples', config.get("FRAME", "nb_samples") )
+        setattr(frame,'channels', config.get("FRAME", "channels") )
+        setattr(frame,'channel_layout', config.get("FRAME", "channel_layout") )
+        audioframes.append(frame)
+    else:
+        print "unknown media_type in gop search"
+    i+=1
+    
+#Setup a lookup table for frame information, that can work when changing between display and decode order
+#Used the coded_frame_number as an index.
+coded_video_frames = []
+for x in videoframes:
+	coded_video_frames.insert(int(x.coded_picture_number), x)
 
-cpn = []
-dpn = []
-pictypes = [] 
-frame = 0
-for x in frame_info:
-    if(x.find("pict_type")>-1):
-        type = x.split("=")
-        pictypes.append(type[1])
-    if(x.find("coded_picture_number")>-1):
-        type = x.split("=")
-        cpn.append(type[1])
-    if(x.find("display_picture_number")>-1):
-        type = x.split("=")
-        dpn.append(type[1])
+
 app = QtGui.QApplication([])
 
-
-## Create tree of Parameter objects
 p = Parameter.create(name='params', type='group', children=params)
 
 etrparams = Parameter.create(name='etrparams', type='group', children=etrparams)
@@ -375,26 +408,22 @@ sdt_panel = QtGui.QGridLayout()
 nit_panel = QtGui.QGridLayout()
 eit_panel = QtGui.QGridLayout()
 tdt_panel = QtGui.QGridLayout()
-frame_panel = QtGui.QGridLayout()
 
+frame_holder = QtGui.QGridLayout()
+frame_panel = QtGui.QHBoxLayout()
 
+aframe_holder = QtGui.QGridLayout()
+aframe_panel = QtGui.QHBoxLayout()
 
 mediainfo = QtGui.QVBoxLayout()
 log	= QtGui.QVBoxLayout()
-framelog	= QtGui.QVBoxLayout()
 etr290 = QtGui.QVBoxLayout()
 tabs	= QtGui.QTabWidget()
-
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
 except AttributeError:
     _fromUtf8 = lambda s: s
-
-framerlog = QtGui.QListWidget()
-framerlog.setViewMode(QtGui.QListView.IconMode)
-framerlog.setIconSize(QtCore.QSize(24, 24))
-framerlog.setSpacing(3)
 
 icon1 = QtGui.QIcon("icons/I.png")
 iframe = icon1.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
@@ -404,54 +433,134 @@ icon3 = QtGui.QIcon("icons/P.png")
 pframe = icon3.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
 icon4 = QtGui.QIcon("icons/list.png")
 pframe = icon4.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
-
+audio_icon = QtGui.QIcon("icons/audio.png")
+audio_icon_pixmap = audio_icon.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
 
 gopmenu = QtGui.QToolBar()
 ordertype  = gopmenu.addAction(icon4, '&Decode/Display Order')
 ordertype_label  = QtGui.QLabel(' Display Order')
 gopmenu.addWidget(ordertype_label)
 
+gopinfo = ParameterTree()
 
+def get_gop_index( index ):
+	global allframeinfo,gopinfo,coded_video_frames
+	frame_number = int( framerlog.currentItem().statusTip() )  
+	params = [{'name': 'Frame Information', 'type': 'group', 'children': []}]
+	params[0]['children'].append({'name': "key_frame", 'type': 'str', 'value':coded_video_frames[frame_number].key_frame, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_pts", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_pts, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_pts_time", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_pts_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_dts", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_dts, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_dts_time", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_dts_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "best_effort_timestamp", 'type': 'str', 'value':coded_video_frames[frame_number].best_effort_timestamp, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "best_effort_timestamp_time", 'type': 'str', 'value':coded_video_frames[frame_number].best_effort_timestamp_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_duration", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_duration, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_duration_time", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_duration_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_pos", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_pos, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_size", 'type': 'str', 'value':coded_video_frames[frame_number].pkt_size, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "width", 'type': 'str', 'value':coded_video_frames[frame_number].width, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "height", 'type': 'str', 'value':coded_video_frames[frame_number].height, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pix_fmt", 'type': 'str', 'value':coded_video_frames[frame_number].pix_fmt, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "sample_aspect_ratio", 'type': 'str', 'value':coded_video_frames[frame_number].sample_aspect_ratio, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pict_type", 'type': 'str', 'value':coded_video_frames[frame_number].pict_type, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "coded_picture_number", 'type': 'str', 'value':coded_video_frames[frame_number].coded_picture_number, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "display_picture_number", 'type': 'str', 'value':coded_video_frames[frame_number].display_picture_number, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "interlaced_frame", 'type': 'str', 'value':coded_video_frames[frame_number].interlaced_frame, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "top_field_first", 'type': 'str', 'value':coded_video_frames[frame_number].top_field_first, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "repeat_pict", 'type': 'str', 'value':coded_video_frames[frame_number].repeat_pict, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	fp = Parameter.create(name='params', type='group', children=params)
+	gopinfo.setParameters(fp, showTop=False)
+
+
+audioinfo = ParameterTree()
+
+def get_audio_index( index ):
+	global allframeinfo,gopinfo,audioframes
+	frame_number = int( audiolog.currentItem().statusTip() )  
+	params = [{'name': 'Audio Information', 'type': 'group', 'children': []}]
+	params[0]['children'].append({'name': "index", 'type': 'str', 'value':frame_number, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "key_frame", 'type': 'str', 'value':audioframes[frame_number].key_frame, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_pts", 'type': 'str', 'value':audioframes[frame_number].pkt_pts, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_pts_time", 'type': 'str', 'value':audioframes[frame_number].pkt_pts_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_dts", 'type': 'str', 'value':audioframes[frame_number].pkt_dts, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_dts_time", 'type': 'str', 'value':audioframes[frame_number].pkt_dts_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "best_effort_timestamp", 'type': 'str', 'value':audioframes[frame_number].best_effort_timestamp, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "best_effort_timestamp_time", 'type': 'str', 'value':audioframes[frame_number].best_effort_timestamp_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_duration", 'type': 'str', 'value':audioframes[frame_number].pkt_duration, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_duration_time", 'type': 'str', 'value':audioframes[frame_number].pkt_duration_time, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_pos", 'type': 'str', 'value':audioframes[frame_number].pkt_pos, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "pkt_size", 'type': 'str', 'value':audioframes[frame_number].pkt_size, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "sample_fmt", 'type': 'str', 'value':audioframes[frame_number].sample_fmt, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "nb_samples", 'type': 'str', 'value':audioframes[frame_number].nb_samples, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "channels", 'type': 'str', 'value':audioframes[frame_number].channels, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	params[0]['children'].append({'name': "channel_layout", 'type': 'str', 'value':audioframes[frame_number].channel_layout, 'siPrefix': False, 'suffix': '', 'readonly': True})
+	fp = Parameter.create(name='params', type='group', children=params)
+	audioinfo.setParameters(fp, showTop=False)
+
+framerlog = QtGui.QListWidget()
+framerlog.setViewMode(QtGui.QListView.IconMode)
+framerlog.setIconSize(QtCore.QSize(24, 24))
+framerlog.setSpacing(3)
+framerlog.setMovement(0)
+framerlog.selectionModel().selectionChanged.connect(get_gop_index)
+
+
+audiolog = QtGui.QListWidget()
+audiolog.setViewMode(QtGui.QListView.IconMode)
+audiolog.setIconSize(QtCore.QSize(24, 24))
+audiolog.setSpacing(3)
+audiolog.setMovement(0)
+
+audiolog.selectionModel().selectionChanged.connect(get_audio_index)
 
 do = []
 def change_gop_order():
-	global goporder, pictypes, cpn,ordertype_label
+	global goporder
 	if(goporder == 1):
-		ordertype_label.setText(" Display Order")
+		ordertype_label.setText(" Decode Order")
 		goporder =0
 	else:
-		ordertype_label.setText(" Decode Order")
+		ordertype_label.setText(" Display Order")
 		goporder =1
 	do = []
 	framerlog.clear()
-	if(goporder ==0):
+	if(goporder ==1):
 	    #Recode in display order from coded order
-	    i=0
-	    for x in cpn:
-	    	n = pictypes[int(i)]
-	    	do.insert(int(x), n)
-	    	i+=1
-	    i=0
+	    for x in videoframes:
+	    	do.insert(int(x.coded_picture_number), x)
 	else:
-		do = pictypes
+	    for x in videoframes:
+	        do.append(x)
+	i=0
 	for x in do:
-		item = QtGui.QListWidgetItem(x)
-		if(x == "I"):
+		item = QtGui.QListWidgetItem(x.pict_type)
+		item.setStatusTip(str(x.coded_picture_number))
+		if(x.pict_type == "I"):
 			item.setIcon(icon1)
 			item.setBackground(QtGui.QColor('#A84F00'))
 			item.setForeground(QtGui.QColor('white'))
-		elif(x == "B"):
+		elif(x.pict_type == "B"):
 			item.setIcon(icon2)
 			item.setBackground(QtGui.QColor('#015E66'))
 			item.setForeground(QtGui.QColor('white'))
-		elif(x =="P"):
+		elif(x.pict_type =="P"):
 			item.setIcon(icon3)
 			item.setBackground(QtGui.QColor('#008310'))
 			item.setForeground(QtGui.QColor('white'))
 		framerlog.addItem(item)
-
+		i+=1
 		
 change_gop_order()
+
+i=0
+for x in audioframes:
+	item = QtGui.QListWidgetItem("audio")
+	item.setStatusTip(str(i))
+	item.setIcon(audio_icon)
+	item.setBackground(QtGui.QColor('#A84F00'))
+	item.setForeground(QtGui.QColor('white'))
+	audiolog.addItem(item)
+	i+=1
 
 ordertype.setStatusTip('Re-order Gop between coded and display order')
 ordertype.triggered.connect(change_gop_order)
@@ -468,6 +577,7 @@ tab8 = QtGui.QWidget()
 tab9 = QtGui.QWidget()
 tab10 = QtGui.QWidget()
 tab11 = QtGui.QWidget()
+tab12 = QtGui.QWidget()
 
 tabs.addTab(tab1,"MediaInfo")
 tabs.addTab(tab3,"Error Log")
@@ -486,8 +596,11 @@ if(len(eit) > 0):
     tabs.addTab(tab9,"EIT")
 if(len(tdt) > 0):
     tabs.addTab(tab10,"TDT")
-if(len(pictypes) > 0):
+if(len(coded_video_frames) > 0):
     tabs.addTab(tab11,"GOP")
+if(len(coded_video_frames) > 0):
+    tabs.addTab(tab12,"Audio")
+
 
 win.setLayout(layout)
 if(len(pcrd) > 0):
@@ -522,10 +635,15 @@ if(len(tdt) > 0):
     w3 = pg.PlotWidget(title="TDT Interval (ms)")
     w3.plot(tdt,pen=(255,255,255))
     tdt_panel.addWidget(w3)
-if(len(pictypes) > 0):
-    frame_panel.addWidget(gopmenu)
+if(len(coded_video_frames) > 0):
+    frame_holder.addWidget(gopmenu)
     frame_panel.addWidget(framerlog)
-
+    frame_panel.addWidget(gopinfo)
+    frame_holder.addLayout(frame_panel,1,0)
+if(len(coded_video_frames) > 0):
+    aframe_panel.addWidget(audiolog)
+    aframe_panel.addWidget(audioinfo)
+    aframe_holder.addLayout(aframe_panel,0,0)
 
 errorlog = QtGui.QPlainTextEdit()
 for x in exceptions:
@@ -552,9 +670,10 @@ if(len(eit) > 0):
     tab9.setLayout(eit_panel)
 if(len(tdt) > 0):
     tab10.setLayout(tdt_panel)    
-if(len(pictypes) > 0):
-    tab11.setLayout(frame_panel)    
-    
+if(len(coded_video_frames) > 0):
+    tab11.setLayout(frame_holder)    
+if(len(coded_video_frames) > 0):
+    tab12.setLayout(aframe_holder)    
     
 layout.addWidget(tabs, 2, 0, 1, 1)
 win.show()
