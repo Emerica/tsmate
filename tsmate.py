@@ -434,19 +434,15 @@ except AttributeError:
 
 packetinfo = QtGui.QPlainTextEdit()
 
-icon1 = QtGui.QIcon("icons/I.png")
-iframe = icon1.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
-icon2 = QtGui.QIcon("icons/B.png")
-bframe = icon2.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
-icon3 = QtGui.QIcon("icons/P.png")
-pframe = icon3.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
-icon4 = QtGui.QIcon("icons/list.png")
-pframe = icon4.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
+iframe_icon= QtGui.QIcon("icons/I.png")
+bframe_icon = QtGui.QIcon("icons/B.png")
+pframe_icon = QtGui.QIcon("icons/P.png")
+list_icon = QtGui.QIcon("icons/list.png")
 audio_icon = QtGui.QIcon("icons/audio.png")
-audio_icon_pixmap = audio_icon.pixmap(24, 24, QtGui.QIcon.Normal, QtGui.QIcon.On)
+packet_icon = QtGui.QIcon("icons/packet.png")
 
 gopmenu = QtGui.QToolBar()
-ordertype  = gopmenu.addAction(icon4, '&Decode/Display Order')
+ordertype  = gopmenu.addAction(list_icon, '&Decode/Display Order')
 ordertype_label  = QtGui.QLabel(' Display Order')
 gopmenu.addWidget(ordertype_label)
 
@@ -562,15 +558,15 @@ def change_gop_order():
 		item = QtGui.QListWidgetItem(x.pict_type)
 		item.setStatusTip(str(x.coded_picture_number))
 		if(x.pict_type == "I"):
-			item.setIcon(icon1)
+			item.setIcon(iframe_icon)
 			item.setBackground(QtGui.QColor('#A84F00'))
 			item.setForeground(QtGui.QColor('white'))
 		elif(x.pict_type == "B"):
-			item.setIcon(icon2)
+			item.setIcon(bframe_icon)
 			item.setBackground(QtGui.QColor('#015E66'))
 			item.setForeground(QtGui.QColor('white'))
 		elif(x.pict_type =="P"):
-			item.setIcon(icon3)
+			item.setIcon(pframe_icon)
 			item.setBackground(QtGui.QColor('#008310'))
 			item.setForeground(QtGui.QColor('white'))
 		framerlog.addItem(item)
@@ -588,11 +584,13 @@ for x in audioframes:
 	audiolog.addItem(item)
 	i+=1
 
+
+packets.pop()
 i=0
 for x in packets:
-	item = QtGui.QListWidgetItem("Pkt")
+	item = QtGui.QListWidgetItem(str(i+1))
 	item.setStatusTip(str(i))
-	item.setIcon(audio_icon)
+	item.setIcon(packet_icon)
 	item.setBackground(QtGui.QColor('#A84F00'))
 	item.setForeground(QtGui.QColor('white'))
 	packetlog.addItem(item)
