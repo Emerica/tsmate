@@ -503,15 +503,15 @@ framerlog.setIconSize(QtCore.QSize(24, 24))
 framerlog.setSpacing(3)
 framerlog.setMovement(0)
 framerlog.selectionModel().selectionChanged.connect(get_gop_index)
-
+framerlog.setResizeMode(QtGui.QListView.Adjust)
 
 audiolog = QtGui.QListWidget()
 audiolog.setViewMode(QtGui.QListView.IconMode)
 audiolog.setIconSize(QtCore.QSize(24, 24))
 audiolog.setSpacing(3)
 audiolog.setMovement(0)
-
 audiolog.selectionModel().selectionChanged.connect(get_audio_index)
+audiolog.setResizeMode(QtGui.QListView.Adjust)
 
 do = []
 def change_gop_order():
@@ -524,6 +524,7 @@ def change_gop_order():
 		goporder =1
 	do = []
 	framerlog.clear()
+	gopinfo.clear()
 	if(goporder ==1):
 	    #Recode in display order from coded order
 	    for x in videoframes:
